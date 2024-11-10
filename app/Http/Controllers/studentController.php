@@ -26,7 +26,7 @@ class StudentController extends Controller
             $validator = $this->validateStudent($request);
             // Si la validación falla, devolver un error 400
             if ($validator->fails()) {
-               return ResposeMessages::error('Error al validar los datos', 400);
+               return ResponseMessages::error('Error al validar los datos', 400);
             }
             // Crear un nuevo estudiante con los datos de la solicitud
             $student = Student::create($request->all());
@@ -56,10 +56,7 @@ class StudentController extends Controller
     {
         try {
             // Encontrar un estudiante por su ID
-            $student = Student::find($id);
-            if ($student == null) {
-                return ResponseMessages::error('No se encontró el estudiante', 404);
-            }
+            $student = Student::findOrFail($id);
             // Eliminar el estudiante
             $student->delete();
             return ResponseMessages::success(null, 'Estudiante eliminado', 200);
@@ -73,7 +70,7 @@ class StudentController extends Controller
             $validator = $this->validateStudent($request, $request->id);
             // Si la validación falla, devolver un error 400
             if ($validator->fails()) {
-                return ResponseMessage::error('Error al validar los datos', 400);
+                return ResponseMessages::error('Error al validar los datos', 400);
             }
             // Encontrar el estudiante usando el ID proporcionado en el cuerpo
             $student = Student::find($request->id);
@@ -81,7 +78,7 @@ class StudentController extends Controller
                 return ResponseMessages::error('No se encontró el estudiante', 404);
             }
             // Actualizar el estudiante con los datos del cuerpo
-            $student->update($request->all());
+            $student->update($request->only(['name', 'email', 'phone', 'language']));
             return ResponseMessages::success($student, 'Estudiante actualizado', 200);
         } catch (\Exception $e) {
             return ResponseMessages::error('Hubo un error', 500, $e);
