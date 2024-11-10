@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Student;
 use Illuminate\Support\Facades\Validator;
+use App\Responses\ResponseMessages;
 
 class StudentController extends Controller
 {
@@ -14,35 +15,25 @@ class StudentController extends Controller
         $students = Student::all();
         // Si no se encontraron estudiantes
         if ($students->isEmpty()) {
-            return response()->json(['message' => 'No se encontraron estudiantes'], 404);
+            return ResponseMessages::error('No se encontraron estudiantes', 404);
         }
-        return response()->json($students, 200);
+        return ResponseMessages::success($students, 'Operación exitosa', 200);
     }
 
     public function store(Request $request)
     { 
         try {
-            // Validar los datos de la solicitud
-            $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:255',
-                'email' => 'required|email|unique:student',
-                'phone' => 'required|string|max:20',
-                'language' => 'required|in:es,en'
-            ]);
+            $validator = $this->validateStudent($request);
             // Si la validación falla, devolver un error 400
             if ($validator->fails()) {
-                return response()->json(['message' => $validator->errors()], 400);
+               return ResposeMessages::error('Error al validar los datos', 400);
             }
             // Crear un nuevo estudiante con los datos de la solicitud
             $student = Student::create($request->all());
-            $data = [
-                'message' => 'Estudiante creado',
-                'student' => $student
-            ];
-            // Devolver una respuesta 201 con los datos del estudiante creado
-            return response()->json($data, 201);
+            // Devolver una respuesta 200 con los datos del estudiante creado
+            return ResponseMessages::success($student, 'Estudiante creado', 200);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Error al crear el estudiante'], 500);
+            return ResponseMessages::error('Hubo un error', 500, $e);
         }
     }
 
@@ -52,12 +43,12 @@ class StudentController extends Controller
             // Encontrar un estudiante por su ID
             $student = Student::find($id);
             if ($student == null) {
-                return response()->json(['message' => 'No se encontró el estudiante'], 404);
+                return ResponseMessages::error('No se encontró el estudiante', 404);
             }
             // Devolver una respuesta 200 con los datos del estudiante
-            return response()->json($student, 200);
+            return ResponseMessages::success($student, 'Operación exitosa', 200);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Hubo un error: ' . $e->getMessage()], 500);
+            return ResponseMessages::error('Hubo un error', 500, $e);
         }
     }
 
@@ -67,49 +58,52 @@ class StudentController extends Controller
             // Encontrar un estudiante por su ID
             $student = Student::find($id);
             if ($student == null) {
-                return response()->json(['message' => 'No se encontró el estudiante'], 404);
+                return ResponseMessages::error('No se encontró el estudiante', 404);
             }
             // Eliminar el estudiante
             $student->delete();
-            return response()->json(['message' => 'Estudiante eliminado'], 200);
+            return ResponseMessages::success(null, 'Estudiante eliminado', 200);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Hubo un error: ' . $e->getMessage()], 500);
+            return ResponseMessages::error('Hubo un error', 500, $e);
         }
     }
     public function update(Request $request)
     {
         try {
-            // Validar que el ID esté presente en el cuerpo de la solicitud
-            $validator = Validator::make($request->all(), [
-                'id' => 'required|exists:student,id',
-                'name' => 'required|string|max:255',
-                'email' => 'required|email|unique:student,email,' . $request->id,
-                'phone' => 'required|string|max:20',
-                'language' => 'required|in:es,en'
-            ]);
+            $validator = $this->validateStudent($request, $request->id);
             // Si la validación falla, devolver un error 400
             if ($validator->fails()) {
-                return response()->json(['message' => $validator->errors()], 400);
+                return ResponseMessage::error('Error al validar los datos', 400);
             }
-    
             // Encontrar el estudiante usando el ID proporcionado en el cuerpo
             $student = Student::find($request->id);
             if ($student == null) {
-                return response()->json(['message' => 'No se encontró el estudiante'], 404);
+                return ResponseMessages::error('No se encontró el estudiante', 404);
             }
-    
             // Actualizar el estudiante con los datos del cuerpo
             $student->update($request->all());
-    
-            $data = [
-                'message' => 'Estudiante actualizado',
-                'student' => $student
-            ];
-            return response()->json($data, 200);
-    
+            return ResponseMessages::success($student, 'Estudiante actualizado', 200);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Hubo un error: ' . $e->getMessage()], 500);
+            return ResponseMessages::error('Hubo un error', 500, $e);
         }
+    }
+    // Validar los datos del estudiante
+    private function validateStudent($request, $id = null)
+    { 
+        // Reglas de validación
+        $rules = [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:student,email,' . $id . ',id',  // Correcta validación de email con exclusión del ID
+            'phone' => 'required|string|max:20',
+            'language' => 'required|in:es,en'
+        ];
+        // Si se proporciona un ID, asegurarse de que el ID exista en la base de datos
+        if ($id != null) {
+            $rules['id'] = 'required|exists:student,id';  // Validar que el ID exista
+        }
+        // Crear el validador
+        $validator = Validator::make($request->all(), $rules);
+        return $validator;
     }
     
 }
