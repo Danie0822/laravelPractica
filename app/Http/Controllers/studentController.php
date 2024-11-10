@@ -29,7 +29,7 @@ class StudentController extends Controller
                return ResponseMessages::error('Error al validar los datos', 400);
             }
             // Crear un nuevo estudiante con los datos de la solicitud
-            $student = Student::create($request->all());
+            $student = Student::create($request->only(['name', 'email', 'phone', 'language']));
             // Devolver una respuesta 200 con los datos del estudiante creado
             return ResponseMessages::success($student, 'Estudiante creado', 200);
         } catch (\Exception $e) {
@@ -41,11 +41,7 @@ class StudentController extends Controller
     {
         try {
             // Encontrar un estudiante por su ID
-            $student = Student::find($id);
-            if ($student == null) {
-                return ResponseMessages::error('No se encontró el estudiante', 404);
-            }
-            // Devolver una respuesta 200 con los datos del estudiante
+            $student = Student::findOrFail($id);
             return ResponseMessages::success($student, 'Operación exitosa', 200);
         } catch (\Exception $e) {
             return ResponseMessages::error('Hubo un error', 500, $e);
