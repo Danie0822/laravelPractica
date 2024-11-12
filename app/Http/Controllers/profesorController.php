@@ -31,6 +31,43 @@ class profesorController extends Controller
         }
     }
 
+    public function show($id){
+        try {
+            $profesor = Profesor::findOrFail($id);
+            return ResponseMessages::success($profesor, 'Operación exitosa', 200);
+        } catch (\Exception $e) {
+            return ResponseMessages::error('Hubo un error', 500, $e);
+        }
+    }
+
+    public function destroy($id){
+        try{
+            $profesor = Profesor::findOrFail($id);
+            $profesor->delete();
+            return ResponseMessages::success(null, 'Profesor eliminado', 200);
+        }
+        catch(\Exception $e){
+            return ResponseMessages::error('Hubo un error', 500, $e);
+        }
+    }
+    
+    public function update(Request $request){
+        try{
+            $validate = $this->validateProfesor($request, $request->id);
+            if($validate->fails()){
+                return ResponseMessages::error('Error al validar los datos', 400);
+            }
+            $profesor = Profesor::findOrFail($request->id);
+            if($profesor == null){
+                return ResponseMessages::error('Profesor no encontrado', 404);
+            }
+            $profesor->update($request->only(['nombre', 'apellido', 'email', 'telefono', 'especialidad', 'clave']));
+            return ResponseMessages::success($profesor, 'Profesor actualizado', 200);
+        }
+        catch(\Exception $e){
+            return ResponseMessages::error('Hubo un error', 500, $e);
+        }
+    }
 
     private function validateProfesor(Request $request, $id = null)
     {
@@ -42,6 +79,10 @@ class profesorController extends Controller
             'especialidad' => 'required|in:matemáticas,física,química,biología, software',
             'clave' => 'required|string|max:255'
         ];
+        if($id == null){
+            $rules['id'] = 'required|exists:student,id';  // Validar que el ID exista
+        }
+
         return Validator::make($request->all(), $rules);
     }
 }
