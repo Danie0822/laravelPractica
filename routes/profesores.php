@@ -8,3 +8,4 @@ Route::post('/profesores', [ProfesorController::class, 'store']);
 Route::get('/profesores/{id}', [ProfesorController::class, 'show']);
 Route::delete('/profesores/{id}', [ProfesorController::class, 'destroy']);
 Route::put('/profesores', [ProfesorController::class, 'update']);
+Route::post('/profesores/login', [ProfesorController::class, 'login']);

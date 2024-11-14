@@ -6,8 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Profesor;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use App\Responses\ResponseMessages;
-
 class profesorController extends Controller
 {
     public function index(){
@@ -22,7 +23,7 @@ class profesorController extends Controller
         try {
             $validator = $this->validateProfesor($request);
             if ($validator->fails()) {
-                return ResponseMessages::error('Error al validar los datos', 400);
+                return ResponseMessages::error($validator->errors(), 400);
             }
             $profesor = Profesor::create($request->only(['nombre', 'apellido', 'email', 'telefono', 'especialidad', 'clave']));
             return ResponseMessages::success($profesor, 'Profesor creado', 200);
@@ -68,6 +69,34 @@ class profesorController extends Controller
             return ResponseMessages::error('Hubo un error', 500, $e);
         }
     }
+    public function login(Request $request){
+         try{
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'clave' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return ResponseMessages::error('Credenciales incorrectas', 400);
+        }
+
+        $profesor = Profesor::where('email', $request->email)->first();
+        
+        if (!$profesor || $request->clave !== $profesor->clave) {
+            return ResponseMessages::error('Credenciales incorrectas', 401);
+        }
+        
+
+        // Generar token o iniciar sesión (si usas Sanctum o Passport)
+        $token = $profesor->createToken('auth_token')->plainTextToken;
+
+        return ResponseMessages::success(['token' => $token], 'Inicio de sesión exitoso', 200);
+    }
+    catch(\Exception $e){
+        return ResponseMessages::error('Hubo un error', 500, $e);
+    }
+    }
+
 
     private function validateProfesor(Request $request, $id = null)
     {
@@ -79,7 +108,7 @@ class profesorController extends Controller
             'especialidad' => 'required|in:matemáticas,física,química,biología, software',
             'clave' => 'required|string|max:255'
         ];
-        if($id == null){
+        if($id !== null){
             $rules['id'] = 'required|exists:student,id';  // Validar que el ID exista
         }
 
